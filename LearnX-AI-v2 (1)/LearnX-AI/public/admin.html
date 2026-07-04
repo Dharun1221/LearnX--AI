@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Records | LearnX AI</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-wrap {
+      max-width: 900px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5f5;
+    }
+    th {
+      color: #7dd3fc;
+      font-weight: 600;
+    }
+    .student-block {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: rgba(2, 6, 23, 0.6);
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+      text-align: left;
+    }
+    .student-name {
+      color: #38bdf8;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .student-email {
+      color: #94a3b8;
+      font-size: 13px;
+    }
+    .no-attempts {
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .refresh-btn {
+      width: auto;
+      display: inline-block;
+      padding: 8px 16px;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container admin-wrap">
+    <h2>Student Records</h2>
+    <p id="summary">Loading...</p>
+    <button class="refresh-btn" onclick="loadRecords()">Refresh</button>
+    <a class="refresh-btn btn" href="/api/admin/export" style="text-decoration:none; display:inline-block;">Download CSV</a>
+    <div id="recordsWrap"></div>
+  </div>
+
+  <script>
+    async function loadRecords() {
+      const summary = document.getElementById("summary");
+      const recordsWrap = document.getElementById("recordsWrap");
+      summary.textContent = "Loading...";
+      recordsWrap.innerHTML = "";
+
+      try {
+        const res = await fetch("/api/admin/records");
+        const data = await res.json();
+
+        if (!res.ok) {
+          summary.textContent = data.error || "Could not load records.";
+          return;
+        }
+
+        const students = data.students;
+        summary.textContent = `${students.length} registered student(s)`;
+
+        let html = "";
+        for (const s of students) {
+          html += `<div class="student-block">
+            <div class="student-name">${escapeHtml(s.name)}</div>
+            <div class="student-email">${escapeHtml(s.email)} &middot; registered ${new Date(s.registeredAt).toLocaleString()}</div>`;
+
+          if (s.attempts.length === 0) {
+            html += `<div class="no-attempts">No assessment attempts yet.</div>`;
+          } else {
+            html += `<table>
+              <tr><th>Date</th><th>Score</th><th>Level</th><th>Category Breakdown</th></tr>`;
+            for (const a of s.attempts) {
+              const breakdown = Object.entries(a.categoryScores)
+                .map(([cat, sc]) => `${escapeHtml(cat)}: ${sc.correct}/${sc.total}`)
+                .join(" &middot; ");
+              html += `<tr>
+                <td>${new Date(a.submittedAt).toLocaleString()}</td>
+                <td>${a.score}/${a.total}</td>
+                <td>${escapeHtml(a.level)}</td>
+                <td>${breakdown}</td>
+              </tr>`;
+            }
+            html += `</table>`;
+          }
+          html += `</div>`;
+        }
+        recordsWrap.innerHTML = html || `<p class="no-attempts">No students registered yet.</p>`;
+      } catch (err) {
+        summary.textContent = "Could not reach the server.";
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    loadRecords();
+  </script>
+</body>
+</html>

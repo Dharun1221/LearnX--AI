@@ -1,0 +1,13 @@
+{
+  "name": "learnx-ai",
+  "version": "2.0.0",
+  "description": "LearnX AI - AI-powered personalized learning platform (hackathon project)",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}
